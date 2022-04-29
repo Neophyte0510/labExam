@@ -1,7 +1,6 @@
 09861-0BE07-76021-92F86
 
-
-(Get-PSReadlineOption).HistorySavePath
+//Removed command
 
 
 Step 1: Type Regedit in the start menu, and open the application.
