@@ -1,0 +1,169 @@
+#include <DHT.h>
+#include <DHT_U.h>
+
+#include <ArduinoWiFiServer.h>
+#include <BearSSLHelpers.h>
+#include <CertStoreBearSSL.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiAP.h>
+#include <ESP8266WiFiGeneric.h>
+#include <ESP8266WiFiGratuitous.h>
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266WiFiScan.h>
+#include <ESP8266WiFiSTA.h>
+#include <ESP8266WiFiType.h>
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
+#include <WiFiClientSecureBearSSL.h>
+#include <WiFiServer.h>
+#include <WiFiServerSecure.h>
+#include <WiFiServerSecureBearSSL.h>
+#include <WiFiUdp.h>
+
+
+String apiKey = "QF7R7TY8X5XET132";     //  Enter your Write API key from ThingSpeak
+ 
+const char *ssid =  "NETGEAR";     // replace with your wifi ssid and wpa2 key
+const char *pass =  "";
+const char* server = "api.thingspeak.com";
+ 
+#define DHTPIN 2 //pin where the dht11 is connected
+#define DHTTYPE DHT11
+
+DHT dht(2,DHT11);
+
+
+ 
+WiFiClient client;
+
+const int trigPin = 12;
+const int echoPin = 14;
+int buzzer = 13;
+
+//define sound velocity in cm/uS
+#define SOUND_VELOCITY 0.034
+#define CM_TO_INCH 0.393701
+
+long duration;
+float distanceCm;
+float distanceInch;
+const int LDR = A0; // Defining LDR PIN 
+int input_val = 0;  // Varible to store Input values
+
+void setup() {
+  Serial.begin(9600); // Starts the serial communication
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
+  pinMode(buzzer, OUTPUT);
+  delay(10);
+  dht.begin();
+ 
+  Serial.println("Connecting to ");
+  Serial.println(ssid);
+ 
+ 
+  WiFi.begin(ssid, pass);
+ 
+  while (WiFi.status() != WL_CONNECTED) 
+     {
+            delay(500);
+            Serial.print(".");
+     }
+      Serial.println("");
+      Serial.println("WiFi connected");
+  
+}
+
+void loop() {
+   input_val = analogRead(LDR);      // Reading Input
+   Serial.print("LDR value is : " );                        
+   Serial.println(input_val);        // Writing input on serial monitor.
+   delay(1000);   
+   
+  // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  
+  // Calculate the distance
+  distanceCm = duration * SOUND_VELOCITY/2;
+  
+  // Convert to inches
+  distanceInch = distanceCm * CM_TO_INCH;
+
+ if(distanceCm<40)
+ {
+  digitalWrite(buzzer, HIGH);
+  
+ }
+ else{
+  digitalWrite(buzzer, LOW);
+  
+ }
+  
+  // Prints the distance on the Serial Monitor
+  Serial.print("Distance (cm): ");
+  Serial.println(distanceCm);
+  Serial.print("Distance (inch): ");
+  Serial.println(distanceInch);
+  
+  delay(1000);
+    
+      float h = dht.readHumidity();
+      float t = dht.readTemperature();
+
+      
+      Serial.print("Temperature: ");
+      Serial.print(t);
+      Serial.print(" degrees Celcius, Humidity: ");
+      Serial.print(h);
+      
+              if (isnan(input_val)) 
+                 {
+                     Serial.println("Failed to read from DHT sensor!");
+                      return;
+                 }
+ 
+                         if (client.connect(server,80))   //   "184.106.153.149" or api.thingspeak.com
+                      {  
+                            
+                             String postStr = apiKey;
+                             postStr +="&field1=";
+                             postStr += String(input_val);
+                             postStr +="&field2=";
+                             postStr += String(distanceCm);
+                             postStr +="&field3=";
+                             postStr += String(h);
+                             postStr +="&field4=";
+                             postStr += String(t);
+                             postStr += "\r\n\r\n";
+ 
+                             client.print("POST /update HTTP/1.1\n");
+                             client.print("Host: api.thingspeak.com\n");
+                             client.print("Connection: close\n");
+                             client.print("X-THINGSPEAKAPIKEY: "+apiKey+"\n");
+                             client.print("Content-Type: application/x-www-form-urlencoded\n");
+                             client.print("Content-Length: ");
+                             client.print(postStr.length());
+                             client.print("\n\n");
+                             client.print(postStr);
+ 
+                             /* Serial.print("Temperature: ");
+                             Serial.print(t);
+                             Serial.print(" degrees Celcius, Humidity: ");
+                             Serial.print(h);
+                             Serial.println("%. Send to Thingspeak."); */
+                        }
+          client.stop();
+ 
+          Serial.println("Waiting...");
+  
+  // thingspeak needs minimum 15 sec delay between updates
+  delay(15000);
+}

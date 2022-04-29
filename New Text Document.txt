@@ -1,0 +1,13 @@
+09861-0BE07-76021-92F86
+
+
+(Get-PSReadlineOption).HistorySavePath
+
+
+Step 1: Type Regedit in the start menu, and open the application.
+
+Step 2: Follow the navigation to ConsentPomptBehaviorAdmin : Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System 
+
+Step 3: Once you find ConsentPromptBehaviorAdmin, right-click on it, and select Modify.
+
+Step 4: Change the Value data to 1, and click OK.
